@@ -2,8 +2,13 @@
 services:
   redis:
     image: 'redislabs/redismod'
-    ports:
-      - '6379:6379'
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
   web1:
     build: ./web
     hostname: web1
@@ -14,6 +19,15 @@ services:
       - redis
     ports:
       - "81:5000"
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
   web2:
     build: ./web
     hostname: web2
@@ -24,6 +38,15 @@ services:
       - redis
     ports:
       - "82:5000"
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
   nginx:
     build: ./nginx
     ports:
@@ -31,5 +54,9 @@ services:
     depends_on:
     - web1
     - web2
-
+    networks:
+      - frontend
+networks:
+  frontend:
+  backend:
 
