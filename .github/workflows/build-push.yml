@@ -1,0 +1,34 @@
+name: build-and-push
+on:
+  push:
+    branches: [ main ]
+env:
+  AWS_REGION: ap-south-1
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push web
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SHA: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/week1-web:$SHA -t $REGISTRY/week1-web:latest ./web
+          docker push $REGISTRY/week1-web:$SHA
+          docker push $REGISTRY/week1-web:latest
+      - name: Build and push nginx
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SHA: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/week1-nginx:$SHA -t $REGISTRY/week1-nginx:latest ./nginx
+          docker push $REGISTRY/week1-nginx:$SHA
+          docker push $REGISTRY/week1-nginx:latest
