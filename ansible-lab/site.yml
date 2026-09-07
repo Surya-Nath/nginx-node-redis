@@ -1,0 +1,37 @@
+- hosts: app
+  become: true
+  vars:
+    ecr: 413816840602.dkr.ecr.ap-south-1.amazonaws.com
+  tasks:
+    - name: packages
+      apt:
+        name: [docker.io, docker-compose-v2, curl]
+        update_cache: true
+        state: present
+
+    - name: docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
+
+    - name: app dir
+      file:
+        path: /home/ubuntu/app
+        state: directory
+        owner: ubuntu
+
+    - name: compose file
+      copy:
+        src: files/compose.prod.yaml
+        dest: /home/ubuntu/app/compose.yaml
+        owner: ubuntu
+
+    - name: ecr login
+      shell: |
+        echo "{{ ecr_password }}" | docker login --username AWS --password-stdin {{ ecr }}
+
+    - name: compose up
+      shell: docker compose up -d
+      args:
+        chdir: /home/ubuntu/app

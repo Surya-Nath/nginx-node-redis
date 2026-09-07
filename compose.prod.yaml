@@ -1,0 +1,60 @@
+services:
+  redis:
+    image: redislabs/redismod
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web1:
+    image: 413816840602.dkr.ecr.ap-south-1.amazonaws.com/week1-web:latest
+    hostname: web1
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      - redis
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  web2:
+    image: 413816840602.dkr.ecr.ap-south-1.amazonaws.com/week1-web:latest
+    hostname: web2
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      - redis
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  nginx:
+    image: 413816840602.dkr.ecr.ap-south-1.amazonaws.com/week1-nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - web1
+      - web2
+    networks:
+      - frontend
+
+networks:
+  frontend:
+  backend:
